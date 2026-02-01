@@ -1,6 +1,11 @@
 .bg-index {
-    background: url("/static/img/background.jpg") no-repeat fixed;
-    background-size: 100% auto;
+    background: url("/static/img/background.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.navbar-home {
+    width: 100%;
 }
 
 .navbar a.nav-link {
@@ -11,18 +16,8 @@
     background-color: #2E2E2E !important;
 }
 
-.ms-footer {
-    background-color: #202020;
-}
-
-.ms-footer p {
-    color: #7F7F7F;
-    font-size: 13px;
-}
-
-.ms-footer a:hover {
-    color: #6ab43e;
-    text-decoration: none;
+.ms-footer-bottom {
+    width: 100%;
 }
 
 .ms-footer-bottom span {
@@ -50,4 +45,26 @@
 .img-card-400 {
   width: fit-content;
   max-height: 400px;
+}
+
+.hero {
+    display: flex;
+    padding: 2rem;
+    color: white;
+}
+
+.hero .logo-container p {
+    margin-top: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+
+@media (max-width: 650px) {
+    .hero {
+        flex-direction: column;
+    }
+
+    section.ms-footer-bottom > div {
+        flex-direction: column;
+    }
 }
