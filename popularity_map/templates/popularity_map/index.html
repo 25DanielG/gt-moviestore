@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    #map {
+        height: 500px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        z-index: 0;
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #fff;
+        border-radius: 12px;
+        padding: 28px 32px;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        position: relative;
+        animation: modalIn 0.2s ease-out;
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 12px; right: 16px;
+        background: none;
+        border: none;
+        font-size: 22px;
+        cursor: pointer;
+        color: #888;
+        line-height: 1;
+    }
+
+    .modal-close:hover { color: #333; }
+
+    .modal-region-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0 0 4px;
+        color: #1a1a2e;
+    }
+
+    .modal-total {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 16px;
+    }
+
+    .modal-movies-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #999;
+        margin-bottom: 8px;
+    }
+
+    .movie-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        background: #f7f7fb;
+    }
+
+    .movie-row:hover { background: #eef0f7; }
+
+    .movie-rank {
+        font-weight: 700;
+        color: #aaa;
+        margin-right: 10px;
+        font-size: 0.85rem;
+        min-width: 18px;
+    }
+
+    .movie-name {
+        flex: 1;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .movie-count {
+        font-weight: 600;
+        color: #5a67d8;
+        font-size: 0.9rem;
+    }
+
+    .no-movies {
+        color: #aaa;
+        font-style: italic;
+        text-align: center;
+        padding: 12px 0;
+    }
+
+    .user-badge {
+        display: inline-block;
+        background: #5a67d8;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+</style>
+
+<div style="padding: 20px;">
+    <div id="map"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="regionModal">
+    <div class="modal-content">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    const map = L.map('map').setView([20, 0], 2);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 6,
+        minZoom: 2
+    }).addTo(map);
+
+    const modal = document.getElementById('regionModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalClose = document.getElementById('modalClose');
+
+    modalClose.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+    });
+
+    function showRegionModal(region, isUserRegion) {
+        let moviesHtml = '';
+        if (region.top_movies && region.top_movies.length > 0) {
+            moviesHtml = region.top_movies.map((movie, i) => `
+                <div class="movie-row">
+                    <span class="movie-rank">${i + 1}</span>
+                    <span class="movie-name">${movie.movie_name}</span>
+                    <span class="movie-count">${movie.total} sold</span>
+                </div>
+            `).join('');
+        } else {
+            moviesHtml = '<div class="no-movies">No purchases yet</div>';
+        }
+
+        modalBody.innerHTML = `
+            <p class="modal-region-name">
+                ${region.name}
+                ${isUserRegion ? '<span class="user-badge">Your Region</span>' : ''}
+            </p>
+            <p class="modal-total">${region.total_purchases} total purchase${region.total_purchases !== 1 ? 's' : ''}</p>
+            <p class="modal-movies-title">Top Movies</p>
+            ${moviesHtml}
+        `;
+
+        modal.classList.add('active');
+    }
+
+    fetch('/map/api/regions/')
+        .then(res => res.json())
+        .then(data => {
+            const userRegion = data.user_region;
+            const maxPurchases = Math.max(...data.regions.map(r => r.total_purchases), 1);
+
+            data.regions.forEach(region => {
+                const isUser = region.code === userRegion;
+                const ratio = region.total_purchases / maxPurchases;
+                const radius = Math.max(10, ratio * 30);
+
+                const marker = L.circleMarker([region.lat, region.lon], {
+                    radius: radius,
+                    fillColor: isUser ? '#5a67d8' : '#e53e3e',
+                    color: isUser ? '#434bab' : '#c53030',
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.6
+                }).addTo(map);
+
+                marker.bindTooltip(`${region.name}: ${region.total_purchases} purchases`, {
+                    direction: 'top',
+                    offset: [0, -radius]
+                });
+
+                marker.on('click', () => showRegionModal(region, isUser));
+            });
+        });
+</script>
+{% endblock %}

@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import redirect
+from accounts.models import REGION_CHOICES, UserProfile
 from .forms import CustomUserCreationForm, CustomErrorList
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
@@ -51,3 +52,18 @@ def orders(request):
     template_data['title'] = 'Orders'
     template_data['orders'] = request.user.order_set.all()
     return render(request, 'accounts/orders.html', {'template_data': template_data})
+
+@login_required
+def profile(request):
+    template_data = {}
+    template_data['title'] = 'Profile'
+    user_profile = UserProfile.objects.get_or_create(user=request.user)[0]
+    if request.method == 'GET':
+        template_data['region'] = user_profile.region
+        template_data['regions'] = REGION_CHOICES
+        return render(request, 'accounts/profile.html', {'template_data': template_data})
+    elif request.method == 'POST':
+        region = request.POST.get('region', 'NA')
+        user_profile.region = region
+        user_profile.save()
+        return redirect('accounts.profile')
