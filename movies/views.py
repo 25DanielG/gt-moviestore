@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, ReviewReport
+from .models import Movie, Review, ReviewReport, Rating
+from django.db.models import Avg
 from django.contrib.auth.decorators import login_required
 
 def index(request):
@@ -16,10 +17,22 @@ def index(request):
 def show(request, id):
     movie = Movie.objects.get(id=id)
     reviews = Review.objects.filter(movie=movie, is_hidden=False)
+    #avg
+    avg_rating = Rating.objects.filter(movie=movie).aggregate(Avg('rating'))['rating__avg']
+    rating_count = Rating.objects.filter(movie=movie).count()
+
+    user_rating = None
+    if request.user.is_authenticated:
+        user_rating_obj = Rating.objects.filter(movie=movie, user=request.user).first()
+        if user_rating_obj:
+            user_rating = user_rating_obj.rating
     template_data = {}
     template_data['title'] = movie.name
     template_data['movie'] = movie
     template_data['reviews'] = reviews
+    template_data['avg_rating'] = avg_rating
+    template_data['rating_count'] = rating_count
+    template_data['user_rating'] = user_rating
     return render(request, 'movies/show.html', {'template_data': template_data})
 
 @login_required
@@ -72,4 +85,17 @@ def report_review(request, id, review_id):
         if ReviewReport.objects.filter(review=review).count() >= 3:
             review.is_hidden = True
             review.save()
+    return redirect('movies.show', id=id)
+
+@login_required
+def create_rating(request, id):
+    if request.method == 'POST':
+        movie = Movie.objects.get(id=id)
+        rating_value = request.POST.get('rating')
+        if rating_value:
+            rating, created = Rating.objects.update_or_create(
+                movie=movie,
+                user=request.user,
+                defaults={'rating': int(rating_value)}
+            )
     return redirect('movies.show', id=id)
