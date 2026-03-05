@@ -13,6 +13,104 @@
           <p>
             <b>Price:</b> ${{ template_data.movie.price }}
           </p>
+
+          <p>
+            <b>Rating:</b>
+            {% if template_data.avg_rating %}
+              {{ template_data.avg_rating|floatformat:1 }} ★ ({{ template_data.rating_count }} ratings)
+              {% if template_data.user_rating %}
+                - Your rating: {{ template_data.user_rating }} ★
+              {% endif %}
+            {% else %}
+              No ratings yet
+            {% endif %}
+          </p>
+
+          {% if user.is_authenticated %}
+            <div class = "mb-4">
+              <b>Your Rating:</b>
+              <form id="rating-form" method="post" action="{% url 'movies.create_rating' id=template_data.movie.id %}" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="rating" id="rating-input" value="{{ template_data.user_rating|default:'' }}" />
+                <div class ="star-rating" id="star-rating">
+                {% for i in "12345" %}
+                    <span class="star" data-value="{{ i }}" style="cursor: pointer; font-size: 2rem; color: #ddd; margin: 0 3px; transition: all 0.2s;">★</span>
+                {% endfor %}
+                </div>
+                <br />
+                <button class="btn bg-dark text-white mt-2" type="submit">Submit Rating</button>
+              </form>
+              <style>
+                .star-rating .star{
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                  font-size: 2.5rem;
+                }
+                .star-rating .star.hover {
+                  color: #ffc107 !important;
+                  text-shadow: 0 0 10px rgba(255, 193, 7, 0.8) !important;
+                  transform: scale(1.1);
+                }
+                .star-rating .star.selected {
+                  color: #ffc107 !important;
+                  text-shadow: 0 0 8px rgba(255, 193, 7, 0.6) !important;
+                }
+              </style>
+              <script>
+                let stars;
+                let ratingInput;
+                
+                document.addEventListener('DOMContentLoaded', function() {
+                  stars = document.querySelectorAll('.star');
+                  ratingInput = document.getElementById('rating-input');
+                  const currentRating = "{{template_data.user_rating|default:'0'}}";
+
+                  //initial rating
+                  if(currentRating && currentRating !== "0"){
+                    stars.forEach(star => {
+                      if(parseInt(star.dataset.value) <= parseInt(currentRating)){
+                        star.classList.add('selected');
+                      }
+                    });
+                  }
+
+                  //hover effect
+                  stars.forEach((star => {
+                    star.addEventListener('mouseover', function() {
+                      const hoverValue = this.dataset.value;
+                      stars.forEach(s => {
+                        s.classList.remove('hover');
+                        if (parseInt(s.dataset.value) <= parseInt(hoverValue)){
+                          s.classList.add('hover');
+                        }
+                      });
+                    });
+                  }))
+
+                  //remove hover on mouseleave
+                  document.getElementById('star-rating').addEventListener('mouseleave', function() {
+                    stars.forEach(s => s.classList.remove('hover'));
+                  });
+
+                  //click to select rating
+                  stars.forEach(star => {
+                    star.addEventListener('click', function() {
+                      const selectedValue = this.dataset.value;
+                      ratingInput.value = selectedValue;
+                      stars.forEach(s => {
+                        s.classList.remove('selected');
+                        if (parseInt(s.dataset.value) <= parseInt(selectedValue)){
+                          s.classList.add('selected');
+                        }
+                      });
+                    });
+                  });
+                });
+              </script>
+              </div>
+          {% endif %}
+
+
           <p class="card-text">
             <form method="post" action="{% url 'cart.add' id=template_data.movie.id %}">
               <div class="row">
