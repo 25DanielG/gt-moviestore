@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Movie, Review, ReviewReport, Rating
-from django.db.models import Avg
+from django.db.models import Avg, Count, Sum
+from cart.models import Item
 from django.contrib.auth.decorators import login_required
-
+from django.contrib.admin.views.decorators import staff_member_required
 def index(request):
     search_term = request.GET.get('search')
     if search_term:
@@ -99,3 +100,22 @@ def create_rating(request, id):
                 defaults={'rating': int(rating_value)}
             )
     return redirect('movies.show', id=id)
+@staff_member_required
+def get_best_movies(request):
+    template_data = {}
+    template_data['title'] = 'Best Performing Movies'
+    most_commented_movie = Movie.objects.annotate(
+        review_count=Count('review')
+    ).order_by('-review_count').first()
+    most_purchased_movie = Movie.objects.annotate(
+        total_purchased=Sum('item__quantity')
+    ).order_by('-total_purchased').first()
+    template_data['most_reviewed'] = {
+        'movie': most_commented_movie,
+        'count': most_commented_movie.review_count if most_commented_movie else 0
+    }
+    template_data['most_purchased'] = {
+        'movie': most_purchased_movie,
+        'count': most_purchased_movie.total_purchased if most_purchased_movie else 0
+    }
+    return render(request, 'movies/admin_movies.html', {'template_data': template_data})

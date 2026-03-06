@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+    <div class="container mt-5">
+        <h1>Best Performing Movies</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Most Purchased Movie</h3>
+            </div>
+            <div class="card-body">
+                {% if template_data.most_purchased.movie %}
+                    <h4>{{ template_data.most_purchased.movie.name }}</h4>
+                    <img src="{{ template_data.most_purchased.movie.image.url }}" class="card-img-top rounded img-card-200">
+                    <p><strong>Total Purchases:</strong> {{ template_data.most_purchased.count }}</p>
+                    <p><strong>Description: </strong>{{ template_data.most_purchased.movie.description}}</p>
+                {% else %}
+                    <p class="text-muted">No movies bought yet.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Most Reviewed Movie -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3>Most Reviewed Movie</h3>
+            </div>
+            <div class="card-body">
+                {% if template_data.most_reviewed.movie %}
+                    <h4>{{ template_data.most_reviewed.movie.name }}</h4>
+                    <img src="{{ template_data.most_reviewed.movie.image.url }}" class="card-img-top rounded img-card-200">
+                    <p><strong>Total Reviews:</strong> {{ template_data.most_reviewed.count }}</p>
+                    <p>{{ template_data.most_reviewed.movie.description}}</p>
+                {% else %}
+                    <p class="text-muted">No reviews made yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
