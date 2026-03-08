@@ -2,8 +2,22 @@
 {% block content %}
 {% load static %}
     <div class="container mt-5">
-        <h1>Best Performing Movies</h1>
+        <h1>Admin Movie Stats Dashboard</h1>
         
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h3>Top Purchasing User</h3>
+            </div>
+            <div class="card-body">
+                {% if template_data.top_purchasing_user %}
+                    <h4>{{ template_data.top_purchasing_user.username }}</h4>
+                    <p><strong>Total Purchases:</strong> {{ template_data.most_user_purchases }}</p>
+                {% else %}
+                    <p class="text-muted">No top user recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <h3>Most Purchased Movie</h3>
